@@ -189,6 +189,17 @@
       opacity: 1;
     }
 
+    .stage.playing-miss .tone-orbit {
+      transform: scale(0.97) rotate(-5deg);
+      border-color: rgba(233, 79, 109, 0.76);
+      box-shadow: 0 0 0 14px rgba(233, 79, 109, 0.12);
+    }
+
+    .stage.playing-miss .tone-orbit::before {
+      opacity: 1;
+      transform: scale(0.88) rotate(16deg);
+    }
+
     .status {
       min-height: 1.4em;
       margin: 16px 0 18px;
@@ -198,7 +209,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 10px;
     }
 
@@ -306,17 +317,18 @@
         <div>
           <h1 id="title">Same Note</h1>
           <p class="subtitle">
-            A tiny musical object about context. The pitch C stays the same; only its surroundings change.
+            A tiny musical object about context. Hear C by itself, hear it supported, then compare a phrase
+            that lands on C with one that stops just short.
           </p>
         </div>
 
         <p class="task">
           <strong>One thing to do</strong>
-          Press the three buttons and listen for whether the same note feels bare, held, or like it has arrived.
+          Press the buttons and listen for the difference between arrival and almost-arrival.
         </p>
       </div>
 
-      <div class="instrument" aria-label="Three sound contexts">
+      <div class="instrument" aria-label="Four sound contexts">
         <div class="stage" id="stage" aria-hidden="true">
           <div class="tone-orbit">
             <div class="tone-core">C</div>
@@ -337,8 +349,12 @@
             <span class="button-detail">C held in warmth</span>
           </button>
           <button type="button" data-sound="phrase" aria-pressed="false">
-            <span class="button-title">As an ending</span>
+            <span class="button-title">Lands on C</span>
             <span class="button-detail">A phrase lands on C</span>
+          </button>
+          <button type="button" data-sound="miss" aria-pressed="false">
+            <span class="button-title">Stops short</span>
+            <span class="button-detail">The phrase ends on B</span>
           </button>
         </div>
       </div>
@@ -349,23 +365,26 @@
         <h2>What to notice</h2>
         <p>
           The ear does not receive a pitch in isolation for long. A surrounding chord can make it feel supported;
-          a short phrase can make the same pitch feel like a destination.
+          a short phrase can make the same pitch feel like a destination. Ending on B instead of C makes the
+          phrase feel as if it still wants one more step.
         </p>
       </div>
 
       <div>
         <h2>Honest limit</h2>
         <p>
-          This does not prove that music has one fixed meaning. It only gives you a small, repeatable way to hear
-          how context can change the role a sound seems to play.
+          B is not a bad note by itself. It only sounds unsettled here because this tiny musical world has taught
+          your ear to expect C as home.
         </p>
       </div>
     </section>
   </main>
 
   <script>
+    const NOTE_B3 = 246.94;
     const NOTE_C4 = 261.63;
     const stage = document.querySelector("#stage");
+    const toneCore = document.querySelector(".tone-core");
     const statusLine = document.querySelector("#status");
     const buttons = Array.from(document.querySelectorAll("[data-sound]"));
 
@@ -376,7 +395,8 @@
     const labels = {
       alone: "Now playing: C alone.",
       chord: "Now playing: C inside a warm chord.",
-      phrase: "Now playing: a short phrase that lands on C."
+      phrase: "Now playing: a short phrase that lands on C.",
+      miss: "Now playing: a similar phrase that stops on B."
     };
 
     function getAudioContext() {
@@ -430,11 +450,13 @@
     function setVisual(kind, durationMs) {
       clearTimeout(visualTimer);
       stage.className = "stage playing-" + kind;
+      toneCore.textContent = kind === "miss" ? "B" : "C";
       statusLine.textContent = labels[kind];
       setActiveButton(kind);
 
       visualTimer = setTimeout(() => {
         stage.className = "stage";
+        toneCore.textContent = "C";
         statusLine.textContent = "Choose a context to hear the note.";
         setActiveButton("");
       }, durationMs);
@@ -479,6 +501,23 @@
       setVisual("phrase", 2100);
     }
 
+    function playMiss(ctx) {
+      const now = ctx.currentTime + 0.02;
+      const phrase = [
+        { frequency: 392.00, start: 0, duration: 0.32, peak: 0.14 },
+        { frequency: 329.63, start: 0.34, duration: 0.32, peak: 0.13 },
+        { frequency: 293.66, start: 0.68, duration: 0.32, peak: 0.12 },
+        { frequency: NOTE_B3, start: 1.02, duration: 0.95, peak: 0.2 }
+      ];
+
+      phrase.forEach((note) => {
+        playTone(ctx, note.frequency, now + note.start, note.duration, note.peak, "triangle");
+      });
+
+      playTone(ctx, 196.00, now + 1.02, 0.95, 0.045, "sine");
+      setVisual("miss", 2100);
+    }
+
     function play(kind) {
       const ctx = getAudioContext();
       if (ctx.state === "suspended") ctx.resume();
@@ -488,6 +527,7 @@
       if (kind === "alone") playAlone(ctx);
       if (kind === "chord") playChord(ctx);
       if (kind === "phrase") playPhrase(ctx);
+      if (kind === "miss") playMiss(ctx);
     }
 
     buttons.forEach((button) => {
