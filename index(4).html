@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Same Note, Different Surroundings</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f7fbf8;
+      --ink: #17211c;
+      --muted: #5b6861;
+      --line: #d7e2dc;
+      --panel: #ffffff;
+      --teal: #21867a;
+      --teal-dark: #176459;
+      --rose: #e94f6d;
+      --gold: #f3c64e;
+      --shadow: 0 18px 50px rgba(23, 33, 28, 0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(33, 134, 122, 0.14), transparent 34rem),
+        linear-gradient(135deg, #f7fbf8 0%, #eef7f2 100%);
+      color: var(--ink);
+    }
+
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0;
+    }
+
+    .object {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(300px, 1.05fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .intro,
+    .instrument,
+    .note-panel {
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .intro {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 11ch;
+      font-size: clamp(2.5rem, 9vw, 5.8rem);
+      line-height: 0.89;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 18px 0 0;
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.55;
+    }
+
+    .task {
+      border-left: 4px solid var(--teal);
+      padding-left: 16px;
+      font-size: 1.02rem;
+      line-height: 1.5;
+    }
+
+    .task strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--teal-dark);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+    }
+
+    .instrument {
+      padding: 22px;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 260px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(rgba(23, 33, 28, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23, 33, 28, 0.045) 1px, transparent 1px),
+        #fbfdfb;
+      background-size: 22px 22px;
+      overflow: hidden;
+    }
+
+    .tone-orbit {
+      width: min(64vw, 290px);
+      aspect-ratio: 1;
+      border: 2px solid rgba(33, 134, 122, 0.28);
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      transition: transform 280ms ease, border-color 280ms ease, box-shadow 280ms ease;
+    }
+
+    .tone-orbit::before,
+    .tone-orbit::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      opacity: 0;
+      transition: opacity 220ms ease, transform 420ms ease;
+    }
+
+    .tone-orbit::before {
+      width: min(48vw, 220px);
+      aspect-ratio: 1;
+      border: 2px dashed rgba(233, 79, 109, 0.5);
+    }
+
+    .tone-orbit::after {
+      width: min(36vw, 150px);
+      aspect-ratio: 1;
+      border: 2px solid rgba(243, 198, 78, 0.75);
+    }
+
+    .tone-core {
+      width: 86px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--ink);
+      color: white;
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: 0.04em;
+      box-shadow: 0 12px 30px rgba(23, 33, 28, 0.18);
+      z-index: 1;
+    }
+
+    .stage.playing-alone .tone-orbit {
+      transform: scale(0.92);
+      border-color: rgba(33, 134, 122, 0.8);
+      box-shadow: 0 0 0 12px rgba(33, 134, 122, 0.08);
+    }
+
+    .stage.playing-chord .tone-orbit {
+      transform: scale(1.03);
+      border-color: rgba(243, 198, 78, 0.9);
+      box-shadow: 0 0 0 18px rgba(243, 198, 78, 0.16);
+    }
+
+    .stage.playing-chord .tone-orbit::after {
+      opacity: 1;
+      transform: scale(1.18);
+    }
+
+    .stage.playing-phrase .tone-orbit {
+      transform: scale(1);
+      border-color: rgba(233, 79, 109, 0.65);
+      box-shadow: 0 0 0 18px rgba(233, 79, 109, 0.1);
+    }
+
+    .stage.playing-phrase .tone-orbit::before,
+    .stage.playing-phrase .tone-orbit::after {
+      opacity: 1;
+    }
+
+    .status {
+      min-height: 1.4em;
+      margin: 16px 0 18px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      color: var(--ink);
+      padding: 14px 12px;
+      min-height: 72px;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    button:hover,
+    button:focus-visible {
+      border-color: rgba(33, 134, 122, 0.55);
+      box-shadow: 0 8px 22px rgba(23, 33, 28, 0.1);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button[aria-pressed="true"] {
+      border-color: var(--teal);
+      background: #eefaf7;
+    }
+
+    .button-title {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 760;
+    }
+
+    .button-detail {
+      display: block;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.25;
+    }
+
+    .note-panel {
+      margin-top: 24px;
+      padding: 20px 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .note-panel h2 {
+      margin: 0 0 8px;
+      font-size: 0.84rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--teal-dark);
+    }
+
+    .note-panel p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    @media (max-width: 780px) {
+      main {
+        width: min(100% - 24px, 620px);
+        padding: 20px 0;
+      }
+
+      .object,
+      .note-panel {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        max-width: 9ch;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="object" aria-labelledby="title">
+      <div class="intro">
+        <div>
+          <h1 id="title">Same Note</h1>
+          <p class="subtitle">
+            A tiny musical object about context. The pitch C stays the same; only its surroundings change.
+          </p>
+        </div>
+
+        <p class="task">
+          <strong>One thing to do</strong>
+          Press the three buttons and listen for whether the same note feels bare, held, or like it has arrived.
+        </p>
+      </div>
+
+      <div class="instrument" aria-label="Three sound contexts">
+        <div class="stage" id="stage" aria-hidden="true">
+          <div class="tone-orbit">
+            <div class="tone-core">C</div>
+          </div>
+        </div>
+
+        <p class="status" id="status" aria-live="polite">
+          Choose a context to hear the note.
+        </p>
+
+        <div class="controls">
+          <button type="button" data-sound="alone" aria-pressed="false">
+            <span class="button-title">Alone</span>
+            <span class="button-detail">C by itself</span>
+          </button>
+          <button type="button" data-sound="chord" aria-pressed="false">
+            <span class="button-title">Inside a chord</span>
+            <span class="button-detail">C held in warmth</span>
+          </button>
+          <button type="button" data-sound="phrase" aria-pressed="false">
+            <span class="button-title">As an ending</span>
+            <span class="button-detail">A phrase lands on C</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="note-panel" aria-label="Reflection notes">
+      <div>
+        <h2>What to notice</h2>
+        <p>
+          The ear does not receive a pitch in isolation for long. A surrounding chord can make it feel supported;
+          a short phrase can make the same pitch feel like a destination.
+        </p>
+      </div>
+
+      <div>
+        <h2>Honest limit</h2>
+        <p>
+          This does not prove that music has one fixed meaning. It only gives you a small, repeatable way to hear
+          how context can change the role a sound seems to play.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const NOTE_C4 = 261.63;
+    const stage = document.querySelector("#stage");
+    const statusLine = document.querySelector("#status");
+    const buttons = Array.from(document.querySelectorAll("[data-sound]"));
+
+    let audioContext;
+    let activeNodes = [];
+    let visualTimer;
+
+    const labels = {
+      alone: "Now playing: C alone.",
+      chord: "Now playing: C inside a warm chord.",
+      phrase: "Now playing: a short phrase that lands on C."
+    };
+
+    function getAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioContext;
+    }
+
+    function makeGain(ctx, start, duration, peak = 0.18) {
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(peak, start + 0.035);
+      gain.gain.setValueAtTime(peak, Math.max(start + 0.04, start + duration - 0.12));
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      gain.connect(ctx.destination);
+      return gain;
+    }
+
+    function playTone(ctx, frequency, start, duration, peak, type = "sine") {
+      const oscillator = ctx.createOscillator();
+      const gain = makeGain(ctx, start, duration, peak);
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, start);
+      oscillator.connect(gain);
+      oscillator.start(start);
+      oscillator.stop(start + duration + 0.04);
+
+      activeNodes.push(oscillator, gain);
+    }
+
+    function stopActiveSound() {
+      activeNodes.forEach((node) => {
+        try {
+          if (typeof node.stop === "function") node.stop();
+          if (typeof node.disconnect === "function") node.disconnect();
+        } catch (error) {
+          // Already stopped nodes can safely be ignored.
+        }
+      });
+      activeNodes = [];
+    }
+
+    function setActiveButton(kind) {
+      buttons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.sound === kind));
+      });
+    }
+
+    function setVisual(kind, durationMs) {
+      clearTimeout(visualTimer);
+      stage.className = "stage playing-" + kind;
+      statusLine.textContent = labels[kind];
+      setActiveButton(kind);
+
+      visualTimer = setTimeout(() => {
+        stage.className = "stage";
+        statusLine.textContent = "Choose a context to hear the note.";
+        setActiveButton("");
+      }, durationMs);
+    }
+
+    function playAlone(ctx) {
+      const now = ctx.currentTime + 0.02;
+      playTone(ctx, NOTE_C4, now, 1.35, 0.22, "sine");
+      setVisual("alone", 1450);
+    }
+
+    function playChord(ctx) {
+      const now = ctx.currentTime + 0.02;
+      const chord = [
+        { frequency: NOTE_C4, peak: 0.16 },
+        { frequency: 329.63, peak: 0.11 },
+        { frequency: 392.00, peak: 0.1 },
+        { frequency: 440.00, peak: 0.07 },
+        { frequency: 523.25, peak: 0.055 }
+      ];
+
+      chord.forEach((note) => {
+        playTone(ctx, note.frequency, now, 1.75, note.peak, "sine");
+      });
+      setVisual("chord", 1850);
+    }
+
+    function playPhrase(ctx) {
+      const now = ctx.currentTime + 0.02;
+      const phrase = [
+        { frequency: 392.00, start: 0, duration: 0.32, peak: 0.14 },
+        { frequency: 329.63, start: 0.34, duration: 0.32, peak: 0.13 },
+        { frequency: 293.66, start: 0.68, duration: 0.32, peak: 0.12 },
+        { frequency: NOTE_C4, start: 1.02, duration: 0.95, peak: 0.21 }
+      ];
+
+      phrase.forEach((note) => {
+        playTone(ctx, note.frequency, now + note.start, note.duration, note.peak, "triangle");
+      });
+
+      playTone(ctx, 130.81, now + 1.02, 0.95, 0.055, "sine");
+      setVisual("phrase", 2100);
+    }
+
+    function play(kind) {
+      const ctx = getAudioContext();
+      if (ctx.state === "suspended") ctx.resume();
+
+      stopActiveSound();
+
+      if (kind === "alone") playAlone(ctx);
+      if (kind === "chord") playChord(ctx);
+      if (kind === "phrase") playPhrase(ctx);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => play(button.dataset.sound));
+    });
+  </script>
+</body>
+</html>
